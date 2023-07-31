@@ -1,0 +1,83 @@
+#include <SPI.h>
+#include <SD.h>
+
+// Define the pins for the data logging shield
+const int chipSelect = 10;
+
+// Define the pin for the TMP26 sensor
+const int tmp26Pin = A0;
+
+void setup() {
+  // Initialize serial communication for debugging
+  Serial.begin(9600);
+
+  // Initialize the data logging shield
+  if (!SD.begin(chipSelect)) {
+    Serial.println("SD card initialization failed!");
+    return;
+  }
+
+  Serial.println("SD card initialized.");
+
+  // Create and open a new file for logging data
+  File dataFile = SD.open("temperature_log.txt", FILE_WRITE);
+
+  if (dataFile) {
+    // Write a header to the file
+    dataFile.println("Time (ms), Temperature (Celsius)");
+    dataFile.close();
+    Serial.println("Logging started.");
+  } else {
+    Serial.println("Error opening file for logging!");
+  }
+}
+
+void loop() {
+  // Read the TMP26 sensor value in Celsius
+  float temperature = readTMP26Temperature();
+
+  // Get the current time in milliseconds
+  unsigned long currentTime = millis();
+
+  // Print the data to the serial monitor
+  Serial.print("Time: ");
+  Serial.print(currentTime);
+  Serial.print(" ms, Temperature: ");
+  Serial.print(temperature);
+  Serial.println(" Celsius");
+
+  // Log the data to the SD card
+  logData(currentTime, temperature);
+
+  // Wait for a short period before reading the sensor again
+  delay(5000);
+}
+
+float readTMP26Temperature() {
+  // Read the analog value from the TMP26 sensor
+  int rawValue = analogRead(tmp26Pin);
+
+  // Convert the raw value to temperature in Celsius
+  // You'll need to calibrate this based on the TMP26 sensor specifications
+  float voltage = (5.0 * rawValue) / 1023.0;
+  float temperature = (voltage - 0.5) * 100.0;
+
+  return temperature;
+}
+
+void logData(unsigned long time, float temperature) {
+  // Open the file in append mode
+  File dataFile = SD.open("temperature_log.txt", FILE_WRITE);
+
+  if (dataFile) {
+    // Write the time and temperature data to the file
+    dataFile.print(time);
+    dataFile.print(", ");
+    dataFile.println(temperature);
+
+    // Close the file
+    dataFile.close();
+  } else {
+    Serial.println("Error opening file for logging!");
+  }
+}
